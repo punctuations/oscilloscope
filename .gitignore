@@ -1,0 +1,9 @@
+**/venv
+
+**/generated
+**/out.wav
+**/examples/circle.wav
+
+# editors
+**/.idea
+**./code
