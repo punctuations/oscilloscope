@@ -29,6 +29,9 @@ The time-complexity of this is best represented through O(n log n)
 -- (Where n is equal to the number of points)
 ![](https://mattjmatthias.co/content/images/big-o-chart.png)
 
+formally,
+![](examples/time_complexity.png)
+
 <sup>[**Back to overview**](#overview)</sup>
 
 #### How it works
