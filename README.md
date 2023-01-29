@@ -11,6 +11,7 @@ so that the original media will once again be displayed
 - [How it works](#how-it-works)
 - [Algorithm](#algorithm)
 - [Examples](#examples)
+- [Similar Projects](#similar-projects)
 
 
 #### Why?
@@ -84,5 +85,15 @@ which when in X/Y mode, will create a circle.
 For a visual representation see the diagram below.
 
 ![](https://camo.githubusercontent.com/3399db6e0f1e9ee92258131bd5131031c225db4be54d56bf2cb21ec9f472c48d/68747470733a2f2f75706c6f61642e77696b696d656469612e6f72672f77696b6970656469612f636f6d6d6f6e732f622f62302f4c697373616a6f75735f666967757265735f6f6e5f6f7363696c6c6f73636f70655f25323839305f646567726565735f70686173655f73686966742532392e676966)
+
+<sup>[**Back to overview**](#overview)</sup>
+
+### Similar Projects
+
+While I am not the first to do something like this, I believe I am to make it for video/images, as one (and in python).
+
+Some projects that are similar and I used as reference can be found below:
+- [Yeonzi's Bad Apple Oscilloscope](https://github.com/yeonzi/badappe_oscilloscope) (C)
+- [YJBeetle's OscilloscopePlayer](https://github.com/YJBeetle/OscilloscopePlayer) (C++)
 
 <sup>[**Back to overview**](#overview)</sup>
