@@ -7,6 +7,8 @@ from scipy.io.wavfile import write, read
 
 from tqdm import tqdm
 
+from scipy.spatial import KDTree
+
 
 def sort_algorithm(points):
     async def distance_calculation(stack, visited):
@@ -20,7 +22,7 @@ def sort_algorithm(points):
 
         def distance_to_reference_point(point):
             x, y = point
-            return math.sqrt((x - last_vertex[0]) ** 2 + (y - last_vertex[1]) ** 2)
+            return (x - last_vertex[0]) ** 2 + (y - last_vertex[1]) ** 2
 
         distanced_points = sorted(stack, key=distance_to_reference_point)
 
