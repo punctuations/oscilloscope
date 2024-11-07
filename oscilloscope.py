@@ -22,7 +22,9 @@ def sort_algorithm(points):
 
         def distance_to_reference_point(point):
             x, y = point
-            return (x - last_vertex[0]) ** 2 + (y - last_vertex[1]) ** 2
+            # if a^2 >= b^2, then a >= b. Save some time, don't square.
+            # modified sqrt( (x_1 - x_2)^2 + (y_1 - y_2)^2 ) to save computation.
+            return (x - last_vertex[0]) + (y - last_vertex[1])
 
         distanced_points = sorted(stack, key=distance_to_reference_point)
 
