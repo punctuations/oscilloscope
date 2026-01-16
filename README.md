@@ -1,11 +1,12 @@
 ## Oscilloscope
 
-This is a open source converter for video/image formats
-to be converted to audio, specifically audio that can be played
-back on an oscilloscope in X/Y mode (or on a [simulator](https://dood.al/oscilloscope/))
-so that the original media will once again be displayed
+This is a open source converter for video/image formats to be converted to
+audio, specifically audio that can be played back on an oscilloscope in X/Y mode
+(or on a [simulator](https://dood.al/oscilloscope/)) so that the original media
+will once again be displayed
 
 ### Overview
+
 - [Why make this?](#why)
 - [Intentions](#intentions)
 - [How it works](#how-it-works)
@@ -13,74 +14,116 @@ so that the original media will once again be displayed
 - [Examples](#examples)
 - [Similar Projects](#similar-projects)
 
+### CLI
+
+You can run the converter as a CLI:
+
+`python -m oscilloscope <path> [flags]`
+
+Examples:
+
+- Video:
+  - `python -m oscilloscope input.mp4 -o out.wav --workers 6 --max-points 12000`
+- Image (auto-detected by extension):
+  - `python -m oscilloscope input.png -o out.wav --duration 3`
+- Force mode:
+  - `python -m oscilloscope input.dat --image --duration 2`
+
+Useful flags:
+
+- `--no-progress` disables the progress bar
+- `--max-points` caps work per frame
+- `--workers` / `--prefetch` control concurrent video processing
+- `--contours` enables contour-based paths (optional)
+- `--no-contours` (default) uses edge-pixels + point ordering
+- `--ordering` controls point ordering (`kd` default, `kd-flat`, `morton`)
+- `--skip-solid` (default) writes silence for solid-color frames; adjust with
+  `--solid-threshold`
+- `--scale` is the biggest speed lever (lower = faster)
+- `--fast` uses a faster contour-tracing path (often faster and looks clean)
 
 #### Why?
 
-This was a project originally made for a class, post-presentation I cleaned it up to
-put it here :)
+This was a project originally made for a class, post-presentation I cleaned it
+up to put it here :)
 
 <sup>[**Back to overview**](#overview)</sup>
 
 #### Intentions
 
-The whole reason for this being open source is so that hopefully if anyone wants to do something in similar they have something to go off of.
-I fully recognize this project could be improved upon, especially in it's efficiency as generation times tends to grow a lot as more points are added.
-
-The time-complexity of this is best represented through O(n log n)
--- (Where n is equal to the number of points)
-![](https://mattjmatthias.co/content/images/big-o-chart.png)
-
-formally,
-![](examples/time_complexity.png)
+The whole reason for this being open source is so that hopefully if anyone wants
+to do something in similar they have something to go off of. I fully recognize
+this project is extremely niche in use but I figured why not.
 
 <sup>[**Back to overview**](#overview)</sup>
 
 #### How it works
 
-The converter works by taking in a path to an image or video
-and opens it using python-opencv, to convert it into a numpy array.
+The converter works by taking in a path to an image or video and opens it using
+python-opencv, to convert it into a numpy array.
 
-After this compression and noise reduction are applied to limit the available points,
-this then undergoes a path calculation on it to draw an outline of the frame/image.
+After this, light noise reduction is applied and an edge map is extracted.
 
-The now edge map will be processed as (x, y) points on a cartesian plane and treated as such
-from here on.
+The edge map is processed as (x, y) points on a cartesian plane and treated as
+such from here on.
 
-A reference point is assigned (this will be the last point in the edge map)
-and the a modified DFS algorithm will sort all the other points by how close it is
-in proximity to the reference point. This process is repeated.
+From there, points are ordered into a path that an oscilloscope can trace.
+Disconnected shapes are handled explicitly to avoid the path constantly jumping
+between separate outlines (which creates faint connector lines).
 
-The list of all visited (sorted) points then have translations applied to them to get it in terms of -1.0 <= y <= 1.0
-(amplitude of a wave) and they are then recombined into a stereo waveform using numpy's column stack.
+The ordered points are normalized into the range [-1, 1] and combined into a
+stereo waveform (X on left channel, Y on right channel).
 
-After this conversion to audio data, depending on the media form, the points will sped up to reach the correct frame rate to
-smooth out the playback when there are a lot of points, and for images the duration passed into the class will be taken into account
-and audio data will be looped to reach this duration (making a solid image displayed for _x_ seconds).
+Audio is written as a streaming WAV file (so it doesn’t re-read/rewrite the
+whole file each frame). For videos, frames are processed concurrently and
+written to WAV in order.
 
 <sup>[**Back to overview**](#overview)</sup>
 
 #### Algorithm
 
-This project uses a modified DFS algorithm to accomplish a clean sort of points,
-as in traditional DFS algorithms most points have defined neighbours, whereas in this case they do not, as disconnected points
-can exist.
+At a high level the pipeline is:
 
-The algorithm starts very similar to a normal one except for that the stack (queue)
-will be sorted by the algorithm everytime, to compensate for the loss of neighbours.
+1. Preprocess frame (resize + grayscale + optional blur/noise cleanup)
+2. Extract edges (Canny)
+3. Convert edges to a draw path
+4. Resample to the target audio frame duration
+5. Write PCM samples to a WAV stream
 
-Every iteration of the algorithm it will get all x and y values and compute distance (using pythagoras adapted for distance)
-away from the reference point it will set the queue to this new sorted list.
+Path construction has a few modes:
 
-Below is a picture of the pythagoras distance calculation:
+- Default (`--no-contours`, `--ordering kd`):
+  - Split the edge map into connected components (each component ≈ one shape)
+  - Downsample points per component to stay within `--max-points`
+  - Build a KD-tree per component and precompute a fixed k-nearest-neighbor
+    table
+  - Do a greedy nearest-neighbor walk over that cached neighbor table
+  - Chain components by nearest endpoints to minimize travel lines between
+    shapes
 
-![](examples/distance.png)
+- `--ordering kd-flat`:
+  - KD ordering over the full edge-point cloud (can interleave shapes)
+
+- `--ordering morton`:
+  - Locality-preserving Morton/Z-order sort (fast, different “stroke” feel)
+
+- `--fast`:
+  - Trace contours directly from the edge map and chain them by endpoint
+    proximity
+  - Avoids KD ordering entirely (often faster)
+
+Time complexity is typically dominated by point ordering. For KD ordering, the
+dominant term is $O(n \log n)$ where $n$ is the number of kept edge points
+(bounded by `--max-points`), plus $O(W\cdot H)$ image operations on the scaled
+frame.
 
 <sup>[**Back to overview**](#overview)</sup>
 
 ## Examples
 
-To break it down a little farther you can use the example file `examples/circle.py` to generate a cosine and sine wave in the left and right channel,
-which when in X/Y mode, will create a circle.
+To break it down a little farther you can use the example file
+`examples/circle.py` to generate a cosine and sine wave in the left and right
+channel, which when in X/Y mode, will create a circle.
 
 For a visual representation see the diagram below.
 
@@ -90,10 +133,14 @@ For a visual representation see the diagram below.
 
 ### Similar Projects
 
-While I am not the first to do something like this, I believe I am to make it for video/images, as one (and in python).
+While I am not the first to do something like this, I believe I am to make it
+for video/images, as one (and in python).
 
 Some projects that are similar and I used as reference can be found below:
-- [Yeonzi's Bad Apple Oscilloscope](https://github.com/yeonzi/badappe_oscilloscope) (C)
-- [YJBeetle's OscilloscopePlayer](https://github.com/YJBeetle/OscilloscopePlayer) (C++)
+
+- [Yeonzi's Bad Apple Oscilloscope](https://github.com/yeonzi/badappe_oscilloscope)
+  (C)
+- [YJBeetle's OscilloscopePlayer](https://github.com/YJBeetle/OscilloscopePlayer)
+  (C++)
 
 <sup>[**Back to overview**](#overview)</sup>
