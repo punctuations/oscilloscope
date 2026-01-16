@@ -5,6 +5,8 @@ audio, specifically audio that can be played back on an oscilloscope in X/Y mode
 (or on a [simulator](https://dood.al/oscilloscope/)) so that the original media
 will once again be displayed
 
+![](./examples/comparison.mp4)
+
 ### Overview
 
 - [Why make this?](#why)
